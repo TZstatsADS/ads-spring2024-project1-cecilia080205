@@ -1,0 +1,64 @@
+---
+title: "Happiness Analysis for Single Males and Females"
+author: "Lei Bao"
+date: "1/31/2024"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(tm)
+```
+
+###Introduction:
+
+This report analyzes the factors that contribute to happiness among single males and females. By examining the frequency of words used to describe happy moments, we can gain insights into what makes each group happy.
+
+###Data Loading
+
+```{r}
+single_females <- read.csv('../data/single_females.csv')
+single_males <- read.csv('../data/single_males.csv')
+```
+
+## Including Plots
+
+```{r}
+get_word_frequency <- function(data, text_column) {
+  data %>%
+    select(!!sym(text_column)) %>%
+    unnest_tokens(word, !!sym(text_column)) %>%
+    anti_join(stop_words) %>%
+    count(word, sort = TRUE)
+}
+
+
+word_freq_females <- get_word_frequency(single_females, "cleaned_hm")
+word_freq_males <- get_word_frequency(single_males, "cleaned_hm")
+
+top_words_females <- head(word_freq_females, 20)
+ggplot(top_words_females, aes(x = reorder(word, n), y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = NULL, y = "Frequency", title = "Top Words for Single Females") +
+  theme_minimal()
+
+ggsave("top_words_females.png", width = 10, height = 6, dpi = 300)
+
+top_words_males <- head(word_freq_males, 20)
+ggplot(top_words_males, aes(x = reorder(word, n), y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = NULL, y = "Frequency", title = "Top Words for Single Males") +
+  theme_minimal()
+
+ggsave("top_words_males.png", width = 10, height = 6, dpi = 300)
+```
+
+###Conclusion This report analyzes the factors that contribute to happiness among single males and females. By examining the frequency of words used to describe happy moments, we can gain insights into what makes each group happy. The following figures illustrate the top words associated with happiness for single females and males, highlighting the similarities and differences between the two.
+
+The bar plots above show that certain words such as 'happy', 'friend', and 'family' are common among the top words for both single females and males, suggesting that relationships play a significant role in happiness for singles. However, there are noteworthy differences as well. For instance, the word 'time' appears more frequently for females, which may indicate that time spent on certain activities or with certain people is particularly valued by single females. Conversely, 'game' and 'won' appear more for males, possibly reflecting a higher emphasis on competitive activities and achievements as sources of happiness.
