@@ -1,0 +1,189 @@
+---
+title: "Happiness Analysis for Single Males and Females"
+author: "Lei Bao"
+date: "1/31/2024"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(tm)
+library(tidytext)
+library(shiny)
+```
+
+###Introduction:
+
+This report analyzes the factors that contribute to happiness among single males and females. By examining the frequency of words used to describe happy moments, we can gain insights into what makes each group happy.
+
+###Data Loading
+
+```{r}
+single_females <- read.csv('../data/single_females.csv')
+single_males <- read.csv('../data/single_males.csv')
+```
+
+## Including Plots
+
+```{r}
+get_word_frequency <- function(data, text_column) {
+  data %>%
+    select(!!sym(text_column)) %>%
+    unnest_tokens(word, !!sym(text_column)) %>%
+    anti_join(stop_words) %>%
+    count(word, sort = TRUE)
+}
+
+word_freq_females <- get_word_frequency(single_females, "cleaned_hm")
+
+top_words_females <- head(word_freq_females, 20)
+ggplot(top_words_females, aes(x = reorder(word, n), y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = NULL, y = "Frequency", title = "Top Words for Single Females") +
+  theme_minimal()
+
+ggsave("top_words_females.png", width = 10, height = 6, dpi = 300)
+
+```
+
+```{r, single female wordcloud}
+# Load required libraries
+library(tm)  # for text mining
+library(wordcloud) 
+library(RColorBrewer) 
+
+text <- readLines("../data/single_females.csv")  
+corpus <- Corpus(VectorSource(text))
+
+# Pre-process the text: remove punctuation, numbers, whitespace, and convert to lowercase
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, removeNumbers)
+corpus <- tm_map(corpus, stripWhitespace)
+
+# Remove stopwords
+corpus <- tm_map(corpus, removeWords, stopwords("en"))
+
+# Create a term-document matrix
+tdm <- TermDocumentMatrix(corpus)
+
+# Convert the matrix to a table of word frequencies
+word_freqs <- sort(rowSums(as.matrix(tdm)), decreasing = TRUE)
+
+# Convert to a data frame
+word_freqs_df <- data.frame(word = names(word_freqs), freq = word_freqs)
+
+# Generate the word cloud
+wordcloud(words = word_freqs_df$word, freq = word_freqs_df$freq, min.freq = 1,
+          max.words = 200, random.order = FALSE, rot.per = 0.35, 
+          colors = brewer.pal(8, "Dark2"))
+
+
+```
+
+
+###By analyzing the plots above, my first question is: What make single female happy? From the plot of the Top Words for Single Females, I find out that the relationship like friend, boyfriend, family, home can make single female happy. Also, the happy molmenft like dinner, birthday, bought and found bring them happiness. Job, Finally and yesterday shows the accomplishments occur in the past can make single females happy.
+
+```{r}
+word_freq_males <- get_word_frequency(single_males, "cleaned_hm")
+top_words_males <- head(word_freq_males, 20)
+ggplot(top_words_males, aes(x = reorder(word, n), y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = NULL, y = "Frequency", title = "Top Words for Single Males") +
+  theme_minimal()
+
+ggsave("top_words_males.png", width = 10, height = 6, dpi = 300)
+```
+```{r}
+library(tm) 
+library(wordcloud) 
+library(RColorBrewer)  
+
+text <- readLines("../data/single_males.csv") 
+corpus <- Corpus(VectorSource(text))
+
+# Pre-process the text: remove punctuation, numbers, whitespace, and convert to lowercase
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, removeNumbers)
+corpus <- tm_map(corpus, stripWhitespace)
+
+# Remove stopwords
+corpus <- tm_map(corpus, removeWords, stopwords("en"))
+
+# Create a term-document matrix
+tdm <- TermDocumentMatrix(corpus)
+
+# Convert the matrix to a table of word frequencies
+word_freqs <- sort(rowSums(as.matrix(tdm)), decreasing = TRUE)
+
+# Convert to a data frame
+word_freqs_df <- data.frame(word = names(word_freqs), freq = word_freqs)
+
+# Generate the word cloud
+wordcloud(words = word_freqs_df$word, freq = word_freqs_df$freq, min.freq = 1,
+          max.words = 200, random.order = FALSE, rot.per = 0.35, 
+          colors = brewer.pal(8, "Dark2"))
+
+```
+###My second question is that what make single male happy? By analyzing the the wordocould and the Top Words for Single Male, I find out that the relationships like friend, girlfriend, home can make single male happy. Also, the happy moment like dinner and night are mentioned. Single male enjoys game, job in their life. 
+```{r}
+# Load required libraries
+library(ggplot2)
+library(reshape2)
+
+# Sample data (replace this with your actual data)
+categories <- c("achievement", "affection", "bonding", "enjoy_the_moment", "exercise")
+female_avg_sentences <- c(1.246, 1.463, 1.307, 1.466, 1.188)  # Average sentences for females in each category
+male_avg_sentences <- c(1.185, 1.432, 1.303, 1.379, 1.103)  # Average sentences for males in each category
+
+# Create a data frame
+data <- data.frame(categories, female_avg_sentences, male_avg_sentences)
+
+# Melt the data frame for ggplot
+melted_data <- melt(data, id.vars = "categories")
+
+# Generate the correlation plot
+ggplot(melted_data, aes(x = categories, y = value, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Number of Sentences by Gender and Category",
+       x = "Category", y = "Average Number of Sentences") +
+  theme_minimal() +
+  scale_fill_discrete(name = "Gender", labels = c("Female", "Male"))
+
+# Note: Update the 'female_avg_sentences' and 'male_avg_sentences' vectors with your actual data
+
+```
+```{r}
+library(ggplot2)
+library(scales)
+
+word_freqs <- read.csv("../data/word_frequencies_comparison.csv")
+
+ggplot(word_freqs, aes(x = male_prop, y = female_prop, label = word)) +
+  geom_abline(intercept = 0, slope = 1, color = "gray40", linetype = "dashed") +
+  geom_point(alpha = 0.2) +
+  geom_text(check_overlap = TRUE, size = 2.5, vjust = 1.5, alpha = 0.5) +
+  scale_x_log10(labels = scales::percent_format(accuracy = 1)) +
+  scale_y_log10(labels = scales::percent_format(accuracy = 1)) +
+  labs(title = "Comparison of Proportions",
+       x = "Proportion of Word Usage (Males)",
+       y = "Proportion of Word Usage (Females)") +
+  theme_light(base_size = 16) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+###My third question is that how different is it to make single women and men happy? From my obersation on the correlation graph above, I find out the biggest difference between the happy words of single male and female is that the males have the word "game" and "play", which do not occur very often to the females. Therefore, playing and game are more attractive to single males than single females.
+
+
+###Conclusion This report analyzes the factors that contribute to happiness among single males and females. By examining the frequency of words used to describe happy moments, we can gain insights into what makes each group happy. The following figures illustrate the top words associated with happiness for single females and males, highlighting the similarities and differences between the two. 
+
+###The bar plots above show that certain words such as 'happy', 'friend', and 'family' are common among the top words for both single females and males, suggesting that relationships play a significant role in happiness for singles. However, there are noteworthy differences as well. For instance, the word 'time' appears more frequently for females, which may indicate that time spent on certain activities or with certain people is particularly valued by single females. Conversely, 'game' and 'won' appear more for males, possibly reflecting a higher emphasis on competitive activities and achievements as sources of happiness.
